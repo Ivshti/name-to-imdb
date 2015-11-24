@@ -14,8 +14,7 @@ function assert(condition, log)
     if (! condition) console.log("name-retriever: "+log); 
 }
 
-/* In-memory cache for items, avoid flooding Google (or whatever search api we use)
- */
+// In-memory cache for items, avoid flooding Google (or whatever search api we use)
 var cache = { };
 
 function nameRetriever()
@@ -108,7 +107,7 @@ function nameRetriever()
         });
     };
     
-    retriever.setMaxListeners(0); /* Unlimited amount of listeners */
+    retriever.setMaxListeners(0); // Unlimited amount of listeners 
     return retriever;
 };
 
