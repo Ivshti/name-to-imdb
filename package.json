@@ -1,0 +1,25 @@
+{
+  "name": "name-to-imdb",
+  "version": "1.0.0",
+  "description": "Finds IMDB ID by movie/series name (fuzzily)  and optionally year",
+  "main": "index.js",
+  "scripts": {
+    "test": "tape test/*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ivshti/name-to-imdb"
+  },
+  "keywords": [
+    "imdb",
+    "movie",
+    "series",
+    "year"
+  ],
+  "author": "Ivo Georgiev <ivo@linvo.com> (http://ivogeorgiev.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Ivshti/name-to-imdb/issues"
+  },
+  "homepage": "https://github.com/Ivshti/name-to-imdb"
+}

@@ -80,10 +80,11 @@ function nameRetriever()
         if (task.cb) retriever.once(hash, task.cb);
         if (inProgress[hash]) return;
         inProgress[hash] = true;
-        retriever.once(hash, function() { delete inProgress[hash] });
 
-        // Cache system
         retriever.once(hash, function(id) {
+            delete inProgress[hash];
+
+            // Cache system
             cache[hash] = id; 
             if (! id) setTimeout(function() { delete cache[hash] }, CACHE_RETRY_TTL); // 2 hours cache expiration - if we don't find an ID
         });
