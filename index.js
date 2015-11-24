@@ -32,7 +32,6 @@ function nameRetriever()
         if (task.hintUrl) return needle.get(task.hintUrl, opts, function(err, resp, body) {
             var match = body && body.match(new RegExp("\/title\/(tt[0-9]+)\/")); // Match IMDB Id from the whole body
             var id = match && match[1];
-            delete inProgress[task.hash];
             retriever.emit(task.hash, id, true); // true for "new match"
             cb();
         });
@@ -62,7 +61,6 @@ function nameRetriever()
                 if (idMatch) id = idMatch;
             });
             
-            delete inProgress[task.hash];
             retriever.emit(task.hash, id, true); // true for "new match"
             cb();
         });
@@ -82,6 +80,7 @@ function nameRetriever()
         if (task.cb) retriever.once(hash, task.cb);
         if (inProgress[hash]) return;
         inProgress[hash] = true;
+        retriever.once(hash, function() { delete inProgress[hash] });
 
         // Cache system
         retriever.once(hash, function(id) {
@@ -95,17 +94,9 @@ function nameRetriever()
 
             assert(res, "NOTMATCHED not matched an metadata item for "+JSON.stringify(q)+" / "+task.name); // log that so we know
 
-            if (res) {
-                // IMPOSSIBLE - since we have type in the query
-                //assert(res.type == task.type, "found metadata for name '"+task.name+"', but type mismatches: "+task.type+" vs "+res.type);
-                delete inProgress[hash];
-                return retriever.emit(hash, (res.type == task.type) ? res.imdb_id : null);
-            };
+            if (res) return retriever.emit(hash, (res.type == task.type) ? res.imdb_id : null);
 
-            if (task.strictName) { 
-                delete inProgress[hash];
-                return retriever.emit(hash, null);
-            }
+            if (task.strictName) return retriever.emit(hash, null);
 
             // WARNING: www. vs not?  is there difference?
             // no quotes - they can actually make the results dumber
@@ -118,6 +109,11 @@ function nameRetriever()
     
     retriever.setMaxListeners(0); /* Unlimited amount of listeners */
     return retriever;
+};
+
+function metadataFind(query, cb)
+{
+
 };
 
 module.exports = nameRetriever;
