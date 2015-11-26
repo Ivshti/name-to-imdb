@@ -19,5 +19,5 @@ nameToImdb({ name: "south park" }, function(err, res, inf) {
 ```
 
 ## Names dataset
-The dataset of movie/series names is exported from Stremio's Cinemeta api and generated in names-dataset.json. This has to be updated from time to time.
+The dataset of movie/series names is exported from Stremio's Cinemeta API and generated in **names-dataset.json**. This has to be updated from time to time.
 
