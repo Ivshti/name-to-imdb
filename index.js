@@ -114,6 +114,8 @@ function nameToImdb(args, cb) {
     if (q.year && typeof(q.year)=="string") q.year = parseInt(q.year.split("-")[0]);
     if (q.year && isNaN(q.year)) return cb(new Error("invalid year"));
 
+    if (q.type && !(q.type=="movie" || q.type=="series")) return cb(null, null); // no match for other types
+
     var hash = new Buffer(args.hintUrl || _.values(q).join(":")).toString("ascii"); // convert to ASCII since EventEmitter bugs with UTF8
     if (cache.hasOwnProperty(hash)) return cb(null, cache[hash]);
 
