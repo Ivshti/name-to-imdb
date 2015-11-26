@@ -17,3 +17,7 @@ nameToImdb({ name: "south park" }, function(err, res, inf) {
 	console.log(inf); // inf contains info on where we matched that name - e.g. locally, or on google
 })
 ```
+
+## Names dataset
+The dataset of movie/series names is exported from Stremio's Cinemeta api and generated in names-dataset.json. This has to be updated from time to time.
+
