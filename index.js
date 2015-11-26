@@ -23,6 +23,7 @@ var cache = { };
 // In-memory index of metadata ; for the record, names-dataset (9mb json) takes around 300ms to parse
 var meta = { };
 require("./names-dataset.json").forEach(function(entry) {
+    entry.year = parseInt(entry.year.split("-")[0]); // first year for series
     var n = simplifyName(entry.name);
     if (!meta[n]) meta[n] = [];
     meta[n].push(entry);
