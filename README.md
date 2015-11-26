@@ -5,9 +5,9 @@ Map names of movies/series to IMDB IDs
 npm install name-to-imdb
 ```
 
-## Usage: nameToImdb(args or name, callback)
-**name** - string
-**args** - object with name/year/type - { name: "The Devil Bat", year: 1940, type: "movie" }
+## Usage: nameToImdb(args, callback)
+
+**args** - string of the name or object with name/year/type - ``{ name: "The Devil Bat", year: 1940, type: "movie" }``
 
 ## Example
 ```javascript

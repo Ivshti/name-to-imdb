@@ -20,6 +20,10 @@ function assert(condition, log)
 // In-memory cache for items, avoid flooding Google (or whatever search api we use)
 var cache = { };
 
+// In-memory index of metadata
+var meta = { };
+
+
 // Find in our metadata set
 function metadataFind(query, cb) {
     return cb(null,null);
@@ -41,17 +45,21 @@ function webFind(task, cb) {
 
     // WARNING: www. vs not?  is there difference?
     // no quotes - they can actually make the results dumber
-    if (! task.query) task.query = "site:imdb.com "
+    var query = "site:imdb.com "
         +task.name.toLowerCase()+(task.year ? " "+task.year : "")
         +((task.type=="series") ? " \"tv series\"" : ""); // Compute that now so that we can use the mapping
 
+    // Google search api is deprecated, use this
+    webFind({ hintUrl: GOOGLE_SEARCH+encodeURIComponent(query) }, cb);
+
     // WARNING this might go offline since it's deprecated; we fallback on simple HTML scraping
-    needle.get(GOOGLE_AJAX_API+encodeURIComponent(task.query), opts, function(err, resp, body) {
+    /*
+    needle.get(GOOGLE_AJAX_API+encodeURIComponent(query), opts, function(err, resp, body) {
         var result = body && body.responseData && body.responseData.results && body.responseData.results.length;
         
         // The API doesn't return results at all: fallback to google scraping
         if (err || !(body && body.responseData && body.responseData.results))
-            return webFind({ hintUrl: GOOGLE_SEARCH+encodeURIComponent(task.query) }, cb);
+            return webFind({ hintUrl: GOOGLE_SEARCH+encodeURIComponent(query) }, cb);
 
         var id;
         if (result) body.responseData.results.slice(0, 3).forEach(function(res) {
@@ -61,11 +69,12 @@ function webFind(task, cb) {
             var match = (task.type!="series" || res.title.match("TV Series")) && res.url.match(new RegExp("\/title\/(tt[0-9]+)\/"));
             var idMatch = match && match[1];
 
-            assert(idMatch, "name-retriever: cannot match an IMDB ID in "+(result && result.url)+" ("+task.query+")");
+            assert(idMatch, "name-retriever: cannot match an IMDB ID in "+(result && result.url)+" ("+query+")");
             if (idMatch) id = idMatch;
         });
         cb(null, id, { match: "google" });
     });
+    */
 }
 
 var retriever = new events.EventEmitter();
