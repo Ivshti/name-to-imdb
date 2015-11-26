@@ -11,14 +11,18 @@ var MAX_CACHE_SIZE = 20000;
 
 function assert(condition, log)
 { 
-    if (! condition) console.log("name-retriever: "+log); 
+    if (!condition) console.log("name-retriever: "+log); 
 }
 
 // In-memory cache for items, avoid flooding Google (or whatever search api we use)
 var cache = { };
 
+function metadataFind(query, cb) {
+    return cb(null,null);
+}
+
 function nameRetriever()
-{
+{ 
     var opts = {
         follow_max: 3,
         open_timeout: 15*1000
@@ -111,9 +115,4 @@ function nameRetriever()
     return retriever;
 };
 
-function metadataFind(query, cb)
-{
-
-};
-
-module.exports = nameRetriever;
+module.exports = nameRetriever();
