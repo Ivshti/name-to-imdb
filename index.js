@@ -21,59 +21,53 @@ function metadataFind(query, cb) {
     return cb(null,null);
 }
 
-function nameRetriever()
-{ 
+function googleFind(query, cb) {
     var opts = {
         follow_max: 3,
         open_timeout: 15*1000
     };
 
-    // Queue to retrieve items we can't match in our metadata dataset
-    var retriever = new events.EventEmitter(), inProgress = {};
-    var retrQueue = async.queue(function(task, cb)
-    {
-        if (task.hintUrl) return needle.get(task.hintUrl, opts, function(err, resp, body) {
-            var match = body && body.match(new RegExp("\/title\/(tt[0-9]+)\/")); // Match IMDB Id from the whole body
-            var id = match && match[1];
-            retriever.emit(task.hash, id, true); // true for "new match"
+    if (query.hintUrl) return needle.get(query.hintUrl, opts, function(err, resp, body) {
+        if (err) return cb(err);
+        var match = body && body.match(new RegExp("\/title\/(tt[0-9]+)\/")); // Match IMDB Id from the whole body
+        var id = match && match[1];
+        cb(null, id);
+    });
+
+    // WARNING this might go offline since it's deprecated; we fallback on simple HTML scraping
+    needle.get("http://ajax.googleapis.com/ajax/services/search/web?v=1.0&rsz=large&q="+encodeURIComponent(query.query), opts, function(err, resp, body) {
+        var result = body && body.responseData && body.responseData.results && body.responseData.results.length;
+        
+        // The API doesn't return results at all: fallback to google scraping
+        if (err || !(body && body.responseData && body.responseData.results)) {
             cb();
+            return retrQueue.push({ hash: query.hash, hintUrl: "https://www.google.com/search?safe=off&site=&source=hp&q="+encodeURIComponent(task.query) });
+        }
+
+        if (err) return callback(err);
+
+        var id;
+        if (result) body.responseData.results.slice(0, 3).forEach(function(res) {
+            if (id) return;
+
+            // Matching IMDB ID strictly
+            var match = (query.type!="series" || res.title.match("TV Series")) && res.url.match(new RegExp("\/title\/(tt[0-9]+)\/"));
+            var idMatch = match && match[1];
+
+            assert(idMatch, "name-retriever: cannot match an IMDB ID in "+(result && result.url)+" ("+query.query+")");
+            if (idMatch) id = idMatch;
         });
+        cb(null, id);
+    });
+}
 
-        // WARNING this might go offline since it's deprecated; we fallback on simple HTML scraping
-        needle.get("http://ajax.googleapis.com/ajax/services/search/web?v=1.0&rsz=large&q="+encodeURIComponent(task.query), opts, function(err, resp, body) {
-        //yahooSearch(task.query, 1, function(err, body)
-            if (err) console.error(err);
-
-            var result = body && body.responseData && body.responseData.results && body.responseData.results.length;
-            
-            // The API doesn't return results at all: fallback to google scraping
-            if (err || !(body && body.responseData && body.responseData.results)) {
-                cb();
-                return retrQueue.push({ hash: task.hash, hintUrl: "https://www.google.com/search?safe=off&site=&source=hp&q="+encodeURIComponent(task.query) });
-            }
-
-            var id;
-            if (result) body.responseData.results.slice(0, 3).forEach(function(res) {
-                if (id) return;
-
-                // Matching IMDB ID strictly
-                var match = (task.type!="series" || res.title.match("TV Series")) && res.url.match(new RegExp("\/title\/(tt[0-9]+)\/"));
-                var idMatch = match && match[1];
-
-                assert(idMatch, "name-retriever: cannot match an IMDB ID in "+(result && result.url)+" ("+task.query+")");
-                if (idMatch) id = idMatch;
-            });
-            
-            retriever.emit(task.hash, id, true); // true for "new match"
-            cb();
-        });
-    }, 2); // reduced from 10 to 2 - most of the requests should be handled by Metadata and cache
-
+function nameRetriever()
+{ 
+    var retriever = new events.EventEmitter();
+    var inProgress = {};
     retriever.get = function(task)
     {
         var q = _.pick(task, "name", "year", "type");
-        if (q.type == "series") q.year = q.year ? new RegExp("^"+q.year) : null;
-        if (! q.year) delete q.year;
 
         // TODO: hash this once maybe?
         var hash = task.hash = new Buffer(task.hintUrl || _.values(q).join(":")).toString("ascii"); // convert to ASCII since EventEmitter bugs with UTF8
@@ -107,7 +101,9 @@ function nameRetriever()
             task.query = "site:imdb.com "
                 +task.name.toLowerCase()+(task.year ? " "+task.year : "")
                 +((task.type=="series") ? " \"tv series\"" : ""); // Compute that now so that we can use the mapping
-            retrQueue.push(task);
+            googleFind(task, function(err, id) {
+                retriever.emit(hash, id);
+            });
         });
     };
     
@@ -115,4 +111,7 @@ function nameRetriever()
     return retriever;
 };
 
-module.exports = nameRetriever();
+var retriever = new nameRetriever();
+module.exports = function nameToImdb(args, cb) {
+    retriever.get(_.extend({ cb: cb }, typeof(args)=="string" ? {name: args} : args));
+};
