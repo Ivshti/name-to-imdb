@@ -1,7 +1,7 @@
 {
   "name": "name-to-imdb",
   "version": "1.0.0",
-  "description": "Finds IMDB ID by movie/series name (fuzzily)  and optionally year",
+  "description": "Finds IMDB ID by movie/series name (fuzzily) and optionally year and type",
   "main": "index.js",
   "scripts": {
     "test": "tape test/*"
