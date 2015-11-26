@@ -23,6 +23,16 @@ var cache = { };
 // In-memory index of metadata
 var meta = { };
 
+// Utility to reduce the name to it's most basic form
+function simplifyName(n) { 
+    if (!n) return n;
+    return n.toLowerCase()
+        .trim()
+        .replace(/\([^\(]+\)$/, "") // remove brackets at end
+        .replace(/&/g, "and") // unify & vs "and"
+        .replace(/[^0-9a-z ]+/g, " ") // remove any special characters
+        .split(" ").filter(function(r){ return r }).join(" ") // remove any aditional whitespaces
+};
 
 // Find in our metadata set
 function metadataFind(query, cb) {
@@ -87,6 +97,9 @@ function nameToImdb(args, cb) {
     args = typeof(args)=="string" ? { name: args } : args;
     
     var q = _.pick(args, "name", "year", "type");
+    q.name = simplifyName(q.name);
+
+    if (! q.name) return cb(new Error("empty name"));
 
     var hash = new Buffer(args.hintUrl || _.values(q).join(":")).toString("ascii"); // convert to ASCII since EventEmitter bugs with UTF8
     if (cache.hasOwnProperty(hash)) return cb(null, cache[hash]);
