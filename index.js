@@ -20,8 +20,13 @@ function assert(condition, log)
 // In-memory cache for items, avoid flooding Google (or whatever search api we use)
 var cache = { };
 
-// In-memory index of metadata
+// In-memory index of metadata ; for the record, names-dataset (9mb json) takes around 300ms to parse
 var meta = { };
+require("./names-dataset.json").forEach(function(entry) {
+    var n = simplifyName(entry.name);
+    if (!meta[n]) meta[n] = [];
+    meta[n].push(entry);
+});
 
 // Utility to reduce the name to it's most basic form
 function simplifyName(n) { 
@@ -36,7 +41,11 @@ function simplifyName(n) {
 
 // Find in our metadata set
 function metadataFind(query, cb) {
-    return cb(null,null);
+    var matches = meta[query.name] || [];
+    process.nextTick(function() {
+        var m = _.findWhere(matches, _.pick(query, "year", "type"));
+        return cb(null, m && m.imdb_id);
+    });
 }
 
 // Find in the web / Google
@@ -100,6 +109,9 @@ function nameToImdb(args, cb) {
     q.name = simplifyName(q.name);
 
     if (! q.name) return cb(new Error("empty name"));
+
+    if (q.year && typeof(q.year)=="string") q.year = parseInt(q.year.split("-")[0]);
+    if (q.year && isNaN(q.year)) return cb(new Error("invalid year"));
 
     var hash = new Buffer(args.hintUrl || _.values(q).join(":")).toString("ascii"); // convert to ASCII since EventEmitter bugs with UTF8
     if (cache.hasOwnProperty(hash)) return cb(null, cache[hash]);
