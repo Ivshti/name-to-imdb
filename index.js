@@ -9,6 +9,9 @@ var needle = require("needle");
 var CACHE_TTL = 4*60*60*1000; // if we don't find an item, how long does it stay in the cache as "not found" before we retry it 
 var MAX_CACHE_SIZE = 20000;
 
+var GOOGLE_AJAX_API = "http://ajax.googleapis.com/ajax/services/search/web?v=1.0&rsz=large&q=";
+var GOOGLE_SEARCH = "https://www.google.com/search?safe=off&site=&source=hp&q=";
+
 function assert(condition, log)
 { 
     if (!condition) console.log("name-retriever: "+log); 
@@ -22,8 +25,8 @@ function metadataFind(query, cb) {
     return cb(null,null);
 }
 
-// Find in Google
-function googleFind(task, cb) {
+// Find in the web / Google
+function webFind(task, cb) {
     var opts = {
         follow_max: 3,
         open_timeout: 15*1000
@@ -33,7 +36,7 @@ function googleFind(task, cb) {
         if (err) return cb(err);
         var match = body && body.match(new RegExp("\/title\/(tt[0-9]+)\/")); // Match IMDB Id from the whole body
         var id = match && match[1];
-        cb(null, id);
+        cb(null, id, { match: task.hintUrl });
     });
 
     // WARNING: www. vs not?  is there difference?
@@ -43,12 +46,12 @@ function googleFind(task, cb) {
         +((task.type=="series") ? " \"tv series\"" : ""); // Compute that now so that we can use the mapping
 
     // WARNING this might go offline since it's deprecated; we fallback on simple HTML scraping
-    needle.get("http://ajax.googleapis.com/ajax/services/search/web?v=1.0&rsz=large&q="+encodeURIComponent(task.query), opts, function(err, resp, body) {
+    needle.get(GOOGLE_AJAX_API+encodeURIComponent(task.query), opts, function(err, resp, body) {
         var result = body && body.responseData && body.responseData.results && body.responseData.results.length;
         
         // The API doesn't return results at all: fallback to google scraping
         if (err || !(body && body.responseData && body.responseData.results))
-            return googleFind({ hintUrl: "https://www.google.com/search?safe=off&site=&source=hp&q="+encodeURIComponent(task.query) }, cb);
+            return webFind({ hintUrl: GOOGLE_SEARCH+encodeURIComponent(task.query) }, cb);
 
         var id;
         if (result) body.responseData.results.slice(0, 3).forEach(function(res) {
@@ -61,7 +64,7 @@ function googleFind(task, cb) {
             assert(idMatch, "name-retriever: cannot match an IMDB ID in "+(result && result.url)+" ("+task.query+")");
             if (idMatch) id = idMatch;
         });
-        cb(null, id);
+        cb(null, id, { match: "google" });
     });
 }
 
@@ -82,7 +85,7 @@ function nameToImdb(args, cb) {
     // Use a system of an EventEmitter + inProgress map to make sure items of the same name are not retrieved multiple times at once
     // Since google searches can take some time and we don't want to repeat
     retriever.once(hash, cb);
-    cb = function(err, id) { retriever.emit(hash, err, id) };
+    cb = function(err, id, inf) { retriever.emit(hash, err, id, inf) };
 
     if (inProgress[hash]) return;
     inProgress[hash] = true;
@@ -97,8 +100,8 @@ function nameToImdb(args, cb) {
     // Find it in our metadata, if not, fallback to Google
     metadataFind(q, function(err, id) {
         if (err) return cb(err);
-        if (id || args.strict) return cb(null, id); // strict means don't search google
-        googleFind(args, cb);
+        if (id || args.strict) return cb(null, id, { match: "metadata" }); // strict means don't search google
+        webFind(args, cb);
     });
 };
 
