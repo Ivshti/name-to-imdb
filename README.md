@@ -9,6 +9,8 @@ npm install name-to-imdb
 
 **args** - string of the name or object with name/year/type - ``{ name: "The Devil Bat", year: 1940, type: "movie" }``
 
+**args.strict** - don't lookup Google / hintUrl to find an IMDB ID
+
 ## Example
 ```javascript
 var nameToImdb = require("name-to-imdb");

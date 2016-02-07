@@ -138,7 +138,7 @@ function nameToImdb(args, cb) {
     // Find it in our metadata, if not, fallback to Google
     metadataFind(q, function(err, id) {
         if (err) return cb(err);
-        if (id || args.strict) return cb(null, id, { match: "metadata" }); // strict means don't search google
+        if (id || args.strict || args.noGoogle) return cb(null, id, { match: "metadata" }); // strict means don't search google
         webFind(args, cb);
     });
 };
