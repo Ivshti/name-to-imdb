@@ -27,7 +27,7 @@ require("./names-dataset.json").forEach(function(entry) {
     var n = simplifyName(entry.name);
     if (!meta[n]) meta[n] = [];
     meta[n].push(entry);
-    byImdb[n.imdb_id] = entry;
+    byImdb[entry.imdb_id] = entry;
 });
 
 // Utility to reduce the name to it's most basic form
