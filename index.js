@@ -1,5 +1,5 @@
 var async = require("async");
-var events = require("events");
+var namedQueue = require("named-queue");
 var qs = require("querystring");
 var _ = require("lodash");
 var needle = require("needle");
@@ -51,6 +51,7 @@ function metadataFind(query, cb) {
         if (err) console.error(err);
         if (res) {
             res.forEach(indexEntry);
+            console.log(res.length)
             pulled[query.type] = 1;
         }
         match();
@@ -89,12 +90,6 @@ function webFind(task, cb) {
     webFind({ hintUrl: GOOGLE_SEARCH+encodeURIComponent(query) }, cb);
 }
 
-// Concurrency control
-var retriever = new events.EventEmitter();
-retriever.setMaxListeners(0); // Unlimited amount of listeners 
-
-var inProgress = { };
-
 // In-memory cache for matched items, to avoid flooding Google (or whatever search api we use)
 var cache = { };
 
@@ -115,28 +110,25 @@ function nameToImdb(args, cb) {
     var hash = new Buffer(args.hintUrl || _.values(q).join(":")).toString("ascii"); // convert to ASCII since EventEmitter bugs with UTF8
     if (cache.hasOwnProperty(hash)) return cb(null, cache[hash]);
 
-    // Use a system of an EventEmitter + inProgress map to make sure items of the same name are not retrieved multiple times at once
-    // Since google searches can take some time and we don't want to repeat
-    retriever.once(hash, cb);
-    cb = function(err, id, inf) { retriever.emit(hash, err, id, inf) };
-
-    if (inProgress[hash]) return;
-    inProgress[hash] = true;
-    retriever.once(hash, function(err, id) {
-        delete inProgress[hash];
-
-        // Cache system
-        cache[hash] = id;
-        setTimeout(function() { delete cache[hash] }, CACHE_TTL);
-    });
-    
-    // Find it in our metadata, if not, fallback to Google
-    metadataFind(q, function(err, id) {
+    queue.push({ id: hash, q: q, args: args }, function(err, imdb_id, match) {
         if (err) return cb(err);
-        if (id || args.strict || args.noGoogle) return cb(null, id, { match: "metadata" }); // strict means don't search google
-        webFind(args, cb);
+        if (imdb_id) {
+            cache[hash] = imdb_id;
+            setTimeout(function() { delete cache[hash] }, CACHE_TTL);
+        }
+        cb(null, imdb_id, match);
     });
 };
+
+var queue = new namedQueue(function(task, cb) {
+    // Find it in our metadata, if not, fallback to Google
+    metadataFind(task.q, function(err, id) {
+        if (err) return cb(err);
+        if (id || task.args.strict || task.args.noGoogle) return cb(null, id, { match: "metadata" }); // strict means don't search google
+        webFind(task.args, cb);
+    });
+}, 3);
+
 
 module.exports = nameToImdb;
 module.exports.byImdb = byImdb;

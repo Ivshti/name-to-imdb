@@ -25,6 +25,7 @@
   "dependencies": {
     "async": "^1.5.0",
     "lodash": "^3.10.1",
+    "named-queue": "^2.0.0",
     "needle": "^0.11.0",
     "stremio-addons": "^2.0.2",
     "tape": "^4.2.2"
