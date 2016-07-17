@@ -3,9 +3,14 @@ var events = require("events");
 var qs = require("querystring");
 var _ = require("lodash");
 var needle = require("needle");
+var Stremio = require("stremio-addons");
 
-/* Constants
- */
+// Use cinemeta to pull names of movies and series against IMDB IDs
+var stremio = new Stremio.Client();
+stremio.add("http://cinemeta.strem.io/stremioget/stremio/v1");
+//stremio.add("http://localhost:3005/stremioget/stremio/v1");
+
+// Constants
 var CACHE_TTL = 4*60*60*1000; // if we don't find an item, how long does it stay in the cache as "not found" before we retry it 
 var MAX_CACHE_SIZE = 20000;
 
@@ -16,19 +21,6 @@ function assert(condition, log)
 { 
     if (!condition) console.log("name-retriever: "+log); 
 }
-
-// In-memory cache for items, avoid flooding Google (or whatever search api we use)
-var cache = { };
-
-// In-memory index of metadata ; for the record, names-dataset (9mb json) takes around 300ms to parse
-var meta = { }, byImdb = { };
-require("./names-dataset.json").forEach(function(entry) {
-    entry.year = parseInt(entry.year.split("-")[0]); // first year for series
-    var n = simplifyName(entry.name);
-    if (!meta[n]) meta[n] = [];
-    meta[n].push(entry);
-    byImdb[entry.imdb_id] = entry;
-});
 
 // Utility to reduce the name to it's most basic form
 function simplifyName(n) { 
@@ -41,13 +33,32 @@ function simplifyName(n) {
         .split(" ").filter(function(r){ return r }).join(" ") // remove any aditional whitespaces
 };
 
+// Index entry in our in-mem index
+function indexEntry(entry) {
+    entry.year = parseInt(entry.year.split("-")[0]); // first year for series
+    var n = simplifyName(entry.name);
+    if (!meta[n]) meta[n] = [];
+    meta[n].push(entry);
+    byImdb[entry.imdb_id] = entry;
+}
+
 // Find in our metadata set
+var pulled = { movie: false, series: false };
+var meta = { }, byImdb = { };
 function metadataFind(query, cb) {
-    var matches = meta[query.name] || [];
-    process.nextTick(function() {
+    // It's OK if we don't pass type and we don't fetch names, because 
+    if (query.type && !pulled[query.type]) stremio.call("names."+query.type, { }, function(err, res) {
+        if (err) console.error(err);
+        if (res) res.forEach(indexEntry);
+        match();
+    });
+    else process.nextTick(match);
+
+    function match() {
+        var matches = meta[query.name] || [ ];
         var m = _.findWhere(matches, _.pick(query, "year", "type"));
         return cb(null, m && m.imdb_id);
-    });
+    };
 }
 
 // Find in the web / Google
@@ -73,36 +84,16 @@ function webFind(task, cb) {
 
     // Google search api is deprecated, use this
     webFind({ hintUrl: GOOGLE_SEARCH+encodeURIComponent(query) }, cb);
-
-    // WARNING this might go offline since it's deprecated; we fallback on simple HTML scraping
-    /*
-    needle.get(GOOGLE_AJAX_API+encodeURIComponent(query), opts, function(err, resp, body) {
-        var result = body && body.responseData && body.responseData.results && body.responseData.results.length;
-        
-        // The API doesn't return results at all: fallback to google scraping
-        if (err || !(body && body.responseData && body.responseData.results))
-            return webFind({ hintUrl: GOOGLE_SEARCH+encodeURIComponent(query) }, cb);
-
-        var id;
-        if (result) body.responseData.results.slice(0, 3).forEach(function(res) {
-            if (id) return;
-
-            // Matching IMDB ID strictly
-            var match = (task.type!="series" || res.title.match("TV Series")) && res.url.match(new RegExp("\/title\/(tt[0-9]+)\/"));
-            var idMatch = match && match[1];
-
-            assert(idMatch, "name-retriever: cannot match an IMDB ID in "+(result && result.url)+" ("+query+")");
-            if (idMatch) id = idMatch;
-        });
-        cb(null, id, { match: "google" });
-    });
-    */
 }
 
+// Concurrency control
 var retriever = new events.EventEmitter();
+retriever.setMaxListeners(0); // Unlimited amount of listeners 
+
 var inProgress = { };
 
-retriever.setMaxListeners(0); // Unlimited amount of listeners 
+// In-memory cache for matched items, to avoid flooding Google (or whatever search api we use)
+var cache = { };
 
 // Outside API
 function nameToImdb(args, cb) {
