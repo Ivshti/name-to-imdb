@@ -51,7 +51,6 @@ function metadataFind(query, cb) {
         if (err) console.error(err);
         if (res) {
             res.forEach(indexEntry);
-            console.log(res.length)
             pulled[query.type] = 1;
         }
         match();
