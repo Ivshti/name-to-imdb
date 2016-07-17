@@ -49,7 +49,10 @@ function metadataFind(query, cb) {
     // It's OK if we don't pass type and we don't fetch names, because 
     if (query.type && !pulled[query.type]) stremio.call("names."+query.type, { }, function(err, res) {
         if (err) console.error(err);
-        if (res) res.forEach(indexEntry);
+        if (res) {
+            res.forEach(indexEntry);
+            pulled[query.type] = 1;
+        }
         match();
     });
     else process.nextTick(match);
