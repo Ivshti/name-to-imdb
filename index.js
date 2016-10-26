@@ -35,7 +35,7 @@ function simplifyName(n) {
 
 // Index entry in our in-mem index
 function indexEntry(entry) {
-    entry.year = parseInt(entry.year.split("-")[0]); // first year for series
+    if (entry.year) entry.year = parseInt(entry.year.split("-")[0]); // first year for series
     var n = simplifyName(entry.name);
     if (!meta[n]) meta[n] = [];
     meta[n].push(entry);
