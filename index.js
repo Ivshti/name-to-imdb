@@ -74,7 +74,7 @@ function webFind(task, cb) {
 
     if (task.hintUrl) return needle.get(task.hintUrl, opts, function(err, resp, body) {
         if (err) return cb(err);
-        var match = body && body.match(new RegExp("\/title\/(tt[0-9]+)\/")); // Match IMDB Id from the whole body
+        var match = body && body.match(new RegExp("\/title\/(tt[0-9]+)")); // Match IMDB Id from the whole body
         var id = match && match[1];
         cb(null, id, { match: task.hintUrl });
     });
