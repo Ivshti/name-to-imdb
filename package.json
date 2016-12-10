@@ -27,7 +27,9 @@
     "lodash": "^3.10.1",
     "named-queue": "^2.1.0",
     "needle": "^1.1.2",
-    "stremio-addons": "^2.0.2",
-    "tape": "^4.2.2"
+    "stremio-addons": "^2.0.2"
+  },
+  "devDependencies": {
+    "tape": "4.x.x"
   }
 }
