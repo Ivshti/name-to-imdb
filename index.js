@@ -59,7 +59,14 @@ function metadataFind(query, cb) {
 
     function match() {
         var matches = meta[query.name] || [ ];
-        var m = _.findWhere(matches, _.pick(query, "year", "type"));
+        var m = matches.find(function(match) {
+            if (! match.type === query.type) return false
+
+            if (query.type === 'movie' && query.hasOwnProperty('year')) 
+                return query.year == match.year
+           
+            return true
+        })
         return cb(null, m && m.imdb_id);
     };
 }
