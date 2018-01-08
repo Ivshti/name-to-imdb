@@ -4,6 +4,7 @@ var qs = require("querystring");
 var _ = require("lodash");
 var needle = require("needle");
 var Stremio = require("stremio-addons");
+var helpers = require("./helpers.js")
 
 // Use cinemeta to pull names of movies and series against IMDB IDs
 var stremio = new Stremio.Client();
@@ -19,7 +20,7 @@ var GOOGLE_SEARCH = "https://www.google.com/search?safe=off&site=&source=hp&q=";
 
 function assert(condition, log)
 { 
-    if (!condition) console.log("name-retriever: "+log); 
+    if (!condition) console.log("name-retriever: "+log);
 }
 
 // Utility to reduce the name to it's most basic form
@@ -45,6 +46,7 @@ function indexEntry(entry) {
 // Find in our metadata set
 var pulled = { movie: false, series: false };
 var meta = { }, byImdb = { };
+
 function metadataFind(query, cb) {
     // It's OK if we don't pass type and we don't fetch names, because we will go to google fallback
     if (query.type && !pulled[query.type]) stremio.call("names."+query.type, { }, function(err, res) {
@@ -63,7 +65,7 @@ function metadataFind(query, cb) {
             if (! match.type === query.type) return false
 
             if (query.type === 'movie' && query.hasOwnProperty('year')) 
-                return query.year == match.year
+                return helpers.yearSimilar(query.year, match.year)
            
             return true
         })
@@ -71,8 +73,84 @@ function metadataFind(query, cb) {
     };
 }
 
+function imdbFind(task, cb, simpler) {
+
+    function nextTick() {
+        if (!simpler && task.year)
+            imdbFind(task, cb, true)
+        else
+            webFind(task, cb)
+    }
+
+    function matchSimilar(parsed, callback) {
+
+        var pick
+        var secondBest
+        var firstResult
+
+        var similarityGoal = 0.6
+
+        parsed.some(elm => {
+            if (!task.type || (task.type == 'movie' && elm.q == 'feature') || (task.type == 'series' && (elm.q == 'TV series' || elm.q == 'TV mini-series'))) {
+
+                if (helpers.yearSimilar(task.year, elm.y)) {
+
+                    // try to match by levenstein distance
+                    var similarity = helpers.nameSimilar(task.name, elm.l)
+
+                    if (similarity > similarityGoal) {
+                        if (!pick || (pick && similarity > pick.similarity)) {
+                            pick = elm
+                            pick.similarity = similarity
+                        }
+                    }
+
+                    // fallback to non-levenstein distance logic
+                    if (!secondBest && helpers.nameAlmostSimilar(task.name, elm.l))
+                        secondBest = elm
+
+                    // if nothing else is found, pick first result
+                    if (!firstResult)
+                        firstResult = elm
+                }
+
+            }
+        })
+
+        callback(pick || secondBest || firstResult || null)
+    }
+
+    var nm = simpler ? task.name : task.year ? task.name.endsWith(' ' + task.year) ? task.name : task.name + ' ' + task.year : task.name
+    
+    var tarImdbUrl = 'http://sg.media-imdb.com/suggests/' + nm.charAt(0).toLowerCase() + '/' + encodeURIComponent(nm)  + '.json'
+
+    needle.get(tarImdbUrl, function(err, res) {
+        if (!err && res.statusCode == 200 && res.body) {
+
+            res.body = String.fromCharCode.apply(null, res.body)
+
+            var imdbParse = JSON.parse(res.body.match(/{.*}/g))
+
+            if (imdbParse.d) {
+
+                var selected
+
+                matchSimilar(imdbParse.d, function(selected) {
+                    if (selected)
+                        cb(null, selected.id, { match: tarImdbUrl })
+                    else nextTick()
+                })
+
+            } else nextTick()
+        } else nextTick()
+    })
+}
+
 // Find in the web / Google
 function webFind(task, cb) {
+
+    if (task.noGoogle) return cb(null, null, null)
+
     var opts = {
         follow_max: 3,
         open_timeout: 15*1000,
@@ -127,11 +205,11 @@ function nameToImdb(args, cb) {
 };
 
 var queue = new namedQueue(function(task, cb) {
-    // Find it in our metadata, if not, fallback to Google
+    // Find it in our metadata, if not, fallback to IMDB API, then Google
     metadataFind(task.q, function(err, id) {
         if (err) return cb(err);
-        if (id || task.args.strict || task.args.noGoogle) return cb(null, id, { match: "metadata" }); // strict means don't search google
-        webFind(task.args, cb);
+        if (id || task.args.strict) return cb(null, id, { match: "metadata" }); // strict means don't search google
+        imdbFind(task.args, cb);
     });
 }, 3);
 
