@@ -9,9 +9,9 @@ npm install name-to-imdb
 
 **args** - string of the name or object with name/year/type - ``{ name: "The Devil Bat", year: 1940, type: "movie" }``
 
-**args.strict** - don't fallback to match first result of imdb (if name doesn't match but year and type do, this is if we're searching with an alternative name, aka) and don't lookup Google / hintUrl to find an IMDB ID
+**args.strict** - don't fallback to match first result of imdb (if name doesn't match but year and type do, this is if we're searching with an alternative name, aka) and don't lookup Google / hintUrl to find an IMDB ID (default is `false`)
 
-**args.noGoogle** - don't lookup Google / hintUrl to find an IMDB ID
+**args.noGoogle** - don't lookup Google / hintUrl to find an IMDB ID (default is `true`)
 
 ## Example
 ```javascript

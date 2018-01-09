@@ -210,6 +210,8 @@ function nameToImdb(args, cb) {
 
 var queue = new namedQueue(function(task, cb) {
 
+    if (!task.args.hasOwnProperty('noGoogle')) task.args.noGoogle = true
+
     task.args.name = helpers.cleanName(task.args)
 
     // Find it in our metadata, if not, fallback to IMDB API, then Google
