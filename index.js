@@ -175,9 +175,10 @@ function nameToImdb(args, cb) {
     args = typeof(args)=="string" ? { name: args } : args;
 
     if (!args.hasOwnProperty('noGoogle')) args.noGoogle = true
+
+    args.name = helpers.simplifyName(args);
     
     var q = _.pick(args, "name", "year", "type");
-    q.name = helpers.simplifyName(q);
 
     if (! q.name) return cb(new Error("empty name"));
 
