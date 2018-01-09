@@ -95,7 +95,7 @@ function imdbFind(task, cb, simpler) {
 
                 if (helpers.yearSimilar(task.year, elm.y)) {
 
-                    // try to match by levenstein distance
+                    // try to match by levenshtein distance
                     var similarity = helpers.nameSimilar(task.name, elm.l)
 
                     if (similarity > similarityGoal) {
@@ -105,11 +105,12 @@ function imdbFind(task, cb, simpler) {
                         }
                     }
 
-                    // fallback to non-levenstein distance logic
+                    // fallback to non-levenshtein distance logic
                     if (!secondBest && helpers.nameAlmostSimilar(task.name, elm.l))
                         secondBest = elm
 
                     // if nothing else is found, pick first result
+                    // (because what we're searching for might be the alternative name of the first result)
                     if (!firstResult)
                         firstResult = elm
                 }
