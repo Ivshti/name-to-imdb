@@ -115,7 +115,7 @@ function imdbFind(task, cb, simpler) {
     // if it fails we search by name only (simpler)
     var searchTerm = !simpler && task.year ? task.name + ' ' + task.year : task.name
     
-    var imdbSearchUrl = 'http://sg.media-imdb.com/suggests/' + searchTerm.charAt(0).toLowerCase() + '/' + encodeURIComponent(searchTerm)  + '.json'
+    var imdbSearchUrl = 'http://sg.media-imdb.com/suggests/' + searchTerm.charAt(0) + '/' + encodeURIComponent(searchTerm)  + '.json'
 
     needle.get(imdbSearchUrl, function(err, res) {
         if (!err && res.statusCode == 200 && res.body) {
