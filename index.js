@@ -150,7 +150,7 @@ function imdbFind(task, cb, simpler) {
 // Find in the web / Google
 function webFind(task, cb) {
 
-    if (task.noGoogle) return cb(null, null, null)
+    if (task.strict || task.noGoogle) return cb(null, null, null) // strict means don't search google
 
     var opts = {
         follow_max: 3,
@@ -209,7 +209,7 @@ var queue = new namedQueue(function(task, cb) {
     // Find it in our metadata, if not, fallback to IMDB API, then Google
     metadataFind(task.q, function(err, id) {
         if (err) return cb(err);
-        if (id || task.args.strict) return cb(null, id, { match: "metadata" }); // strict means don't search google
+        if (id) return cb(null, id, { match: "metadata" });
         imdbFind(task.args, cb);
     });
 }, 3);
