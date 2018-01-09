@@ -122,11 +122,13 @@ function imdbFind(task, cb, simpler) {
         callback(pick || secondBest || firstResult || null)
     }
 
-    var nm = simpler ? task.name : task.year ? task.name.endsWith(' ' + task.year) ? task.name : task.name + ' ' + task.year : task.name
+    // we first search imdb for name + year (if we have a year set)
+    // if it fails we search by name only (simpler)
+    var searchTerm = !simpler && task.year ? task.name + ' ' + task.year : task.name
     
-    var tarImdbUrl = 'http://sg.media-imdb.com/suggests/' + nm.charAt(0).toLowerCase() + '/' + encodeURIComponent(nm)  + '.json'
+    var imdbSearchUrl = 'http://sg.media-imdb.com/suggests/' + searchTerm.charAt(0).toLowerCase() + '/' + encodeURIComponent(searchTerm)  + '.json'
 
-    needle.get(tarImdbUrl, function(err, res) {
+    needle.get(imdbSearchUrl, function(err, res) {
         if (!err && res.statusCode == 200 && res.body) {
 
             res.body = String.fromCharCode.apply(null, res.body)
@@ -139,7 +141,7 @@ function imdbFind(task, cb, simpler) {
 
                 matchSimilar(imdbParse.d, function(selected) {
                     if (selected)
-                        cb(null, selected.id, { match: tarImdbUrl })
+                        cb(null, selected.id, { match: imdbSearchUrl })
                     else nextTick()
                 })
 
@@ -207,6 +209,9 @@ function nameToImdb(args, cb) {
 };
 
 var queue = new namedQueue(function(task, cb) {
+
+    task.args.name = helpers.cleanName(task.args)
+
     // Find it in our metadata, if not, fallback to IMDB API, then Google
     metadataFind(task.q, function(err, id) {
         if (err) return cb(err);

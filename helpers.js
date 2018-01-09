@@ -81,4 +81,16 @@ helpers.nameAlmostSimilar = function(parsedName, altName) {
     return false
 }
 
+helpers.cleanName = function(args) {
+
+	// fix usual issues with the names
+	args.name = args.name.trim()
+
+	if (args.year && args.name.endsWith(' ' + args.year))
+		args.name = args.name.replace(new RegExp(' ' + args.year + '$', 'i'), '')
+
+	return args.name
+
+}
+
 module.exports = helpers
