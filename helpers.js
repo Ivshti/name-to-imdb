@@ -81,15 +81,24 @@ helpers.nameAlmostSimilar = function(parsedName, altName) {
     return false
 }
 
-helpers.cleanName = function(args) {
+// Utility to reduce the name to it's most basic form
 
-	// fix usual issues with the names
-	args.name = args.name.trim()
+helpers.simplifyName = function(args) { 
 
-	if (args.year && args.name.endsWith(' ' + args.year))
-		args.name = args.name.replace(new RegExp(' ' + args.year + '$', 'i'), '')
+    if (!args || !args.name)
+      return null
 
-	return args.name
+    args.name = args.name.toLowerCase()
+        .trim()
+        .replace(/\([^\(]+\)$/, "") // remove brackets at end
+        .replace(/&/g, "and") // unify & vs "and"
+        .replace(/[^0-9a-z ]+/g, " ") // remove any special characters
+        .split(" ").filter(function(r){ return r }).join(" ") // remove any aditional whitespaces
+
+    if (args.year && args.name.endsWith(' ' + args.year))
+        args.name = args.name.replace(new RegExp(' ' + args.year + '$', 'i'), '')
+
+    return args.name
 
 }
 

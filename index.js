@@ -23,21 +23,10 @@ function assert(condition, log)
     if (!condition) console.log("name-retriever: "+log);
 }
 
-// Utility to reduce the name to it's most basic form
-function simplifyName(n) { 
-    if (!n) return n;
-    return n.toLowerCase()
-        .trim()
-        .replace(/\([^\(]+\)$/, "") // remove brackets at end
-        .replace(/&/g, "and") // unify & vs "and"
-        .replace(/[^0-9a-z ]+/g, " ") // remove any special characters
-        .split(" ").filter(function(r){ return r }).join(" ") // remove any aditional whitespaces
-};
-
 // Index entry in our in-mem index
 function indexEntry(entry) {
     if (entry.year) entry.year = parseInt(entry.year.toString().split("-")[0]); // first year for series
-    var n = simplifyName(entry.name);
+    var n = helpers.simplifyName(entry);
     if (!meta[n]) meta[n] = [];
     meta[n].push(entry);
     byImdb[entry.imdb_id] = entry;
@@ -184,9 +173,11 @@ var cache = { };
 // Outside API
 function nameToImdb(args, cb) {
     args = typeof(args)=="string" ? { name: args } : args;
+
+    if (!args.hasOwnProperty('noGoogle')) args.noGoogle = true
     
     var q = _.pick(args, "name", "year", "type");
-    q.name = simplifyName(q.name);
+    q.name = helpers.simplifyName(q);
 
     if (! q.name) return cb(new Error("empty name"));
 
@@ -209,11 +200,6 @@ function nameToImdb(args, cb) {
 };
 
 var queue = new namedQueue(function(task, cb) {
-
-    if (!task.args.hasOwnProperty('noGoogle')) task.args.noGoogle = true
-
-    task.args.name = helpers.cleanName(task.args)
-
     // Find it in our metadata, if not, fallback to IMDB API, then Google
     metadataFind(task.q, function(err, id) {
         if (err) return cb(err);
