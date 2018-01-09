@@ -111,7 +111,8 @@ function imdbFind(task, cb, simpler) {
 
                     // if nothing else is found, pick first result
                     // (because what we're searching for might be the alternative name of the first result)
-                    if (!firstResult)
+                    // this is ignored if strict mode enabled
+                    if (!firstResult && !task.strict)
                         firstResult = elm
                 }
 
@@ -150,7 +151,7 @@ function imdbFind(task, cb, simpler) {
 // Find in the web / Google
 function webFind(task, cb) {
 
-    if (task.strict || task.noGoogle) return cb(null, null, null) // strict means don't search google
+    if (task.strict || task.noGoogle) return cb(null, null, null) // strict and noGoogle don't search google
 
     var opts = {
         follow_max: 3,
