@@ -2,8 +2,12 @@ var namedQueue = require('named-queue');
 var _ = require('lodash');
 var helpers = require('./helpers')
 
-var metadataFind = require('./providers/cinemeta')
-var imdbFind = require('./providers/imdbFind')
+var providers = {
+    metadata: require('./providers/cinemeta'),
+    imdbFind: require('./providers/imdbFind'),
+}
+
+var defaultProviders = ['metadata', 'imdbFind']
 
 // Constants
 var CACHE_TTL = 12*60*60*1000; // if we don't find an item, how long does it stay in the cache as 'not found' before we retry it 
@@ -34,10 +38,14 @@ function nameToImdb(args, cb) {
     var key = new Buffer(args.hintUrl || _.values(q).join(':')).toString('ascii') // convert to ASCII since EventEmitter bugs with UTF8
     
     if (cache.hasOwnProperty(key))
-        return cb(null, cache[key])
+        return cb(null, cache[key], { match: 'cache' })
 
-    queue.push({ id: key, q: q, args: args }, function(err, imdb_id, match) {
-        if (err) 
+    queue.push({ 
+        id: key,
+        q: q,
+        providers: args.providers || defaultProviders,
+    }, function(err, imdb_id, match) {
+        if (err)
             return cb(err)
         
         if (imdb_id) {
@@ -50,12 +58,30 @@ function nameToImdb(args, cb) {
 };
 
 function worker(task, cb) {
-    // Find it in our metadata, if not, fallback to IMDB API, then Google
-    metadataFind(task.q, function(err, id) {
-        if (err) return cb(err);
-        if (id) return cb(null, id, { match: 'metadata' })
-        imdbFind(task.q, cb);
-    })
+    var prov = [].concat(task.providers)
+
+    nextProv()
+
+    function nextProv()
+    {
+        var n = prov.shift()
+        if (! n)
+            return cb(null, null)
+
+        var provider = providers[n]
+        if (!provider)
+            return cb(new Error('unknown provider: '+n))
+
+        provider(task.q, function(err, id) {
+            if (err)
+                return cb(err)
+
+            if (id)
+                return cb(null, id, { match: n })
+            else
+                nextProv()
+        })
+    }
 }
 
 module.exports = nameToImdb;
