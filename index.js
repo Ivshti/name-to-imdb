@@ -27,10 +27,13 @@ function nameToImdb(args, cb) {
     
     var q = _.pick(args, 'name', 'year', 'type')
 
-    if (! q.name) return cb(new Error('empty name'))
+    if (! q.name)
+        return cb(new Error('empty name'))
 
     if (q.year && typeof(q.year)=='string') q.year = parseInt(q.year.split('-')[0])
-    if (q.year && isNaN(q.year)) return cb(new Error('invalid year'))
+    
+    if (q.year && isNaN(q.year))
+        return cb(new Error('invalid year'))
 
     if (q.type && !(q.type=='movie' || q.type=='series')) 
         return cb(null, null) // no match for other types
