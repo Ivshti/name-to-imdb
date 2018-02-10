@@ -12,9 +12,7 @@ function getImdbResults(searchTerm, cb) {
 
         if (!err && res.statusCode == 200 && res.body) {
 
-            res.body = String.fromCharCode.apply(null, res.body)
-
-            var imdbParse = JSON.parse(res.body.match(/{.*}/g))
+            var imdbParse = JSON.parse(res.body.toString().match(/{.*}/g))
 
             var results = imdbParse.d
 
@@ -104,4 +102,3 @@ function imdbFind(task, cb, loose) {
 }
 
  module.exports = imdbFind
- 
