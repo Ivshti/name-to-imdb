@@ -39,14 +39,15 @@ function nameToImdb(args, cb) {
     });
 };
 
-var queue = new namedQueue(function(task, cb) {
+var queue = new namedQueue(worker, 3);
+
+function worker(task, cb) {
     // Find it in our metadata, if not, fallback to IMDB API, then Google
     metadataFind(task.q, function(err, id) {
         if (err) return cb(err);
         if (id) return cb(null, id, { match: "metadata" });
-        imdbFind(task.args, cb);
-    });
-}, 3);
-
+        imdbFind(task.q, cb);
+    })
+}
 
 module.exports = nameToImdb;
