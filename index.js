@@ -41,7 +41,7 @@ function nameToImdb(args, cb) {
     var key = new Buffer(args.hintUrl || _.values(q).join(':')).toString('ascii') // convert to ASCII since EventEmitter bugs with UTF8
     
     if (cache.hasOwnProperty(key))
-        return cb(null, cache[key], { match: 'cache' })
+        return cb(null, cache[key][0], { match: cache[key][1].match, isCached: true })
 
     queue.push({ 
         id: key,
@@ -52,7 +52,7 @@ function nameToImdb(args, cb) {
             return cb(err)
         
         if (imdb_id) {
-            cache[key] = imdb_id
+            cache[key] = [imdb_id, match]
             setTimeout(function() { delete cache[key] }, CACHE_TTL)
         }
 
