@@ -1,143 +1,12 @@
-var async = require("async");
 var namedQueue = require("named-queue");
-var qs = require("querystring");
 var _ = require("lodash");
-var needle = require("needle");
-var Stremio = require("stremio-addons");
-var helpers = require("./helpers.js")
+var helpers = require("./helpers")
 
-// Use cinemeta to pull names of movies and series against IMDB IDs
-var stremio = new Stremio.Client();
-stremio.add("http://cinemeta.strem.io/stremioget/stremio/v1");
-//stremio.add("http://localhost:3005/stremioget/stremio/v1");
+var metadataFind = require("./providers/cinemeta")
+var imdbFind = require("./providers/imdbFind")
 
 // Constants
-var CACHE_TTL = 4*60*60*1000; // if we don't find an item, how long does it stay in the cache as "not found" before we retry it 
-var MAX_CACHE_SIZE = 20000;
-
-var GOOGLE_AJAX_API = "http://ajax.googleapis.com/ajax/services/search/web?v=1.0&rsz=large&q=";
-var GOOGLE_SEARCH = "https://www.google.com/search?safe=off&site=&source=hp&q=";
-
-function assert(condition, log)
-{ 
-    if (!condition) console.log("name-retriever: "+log);
-}
-
-// Index entry in our in-mem index
-function indexEntry(entry) {
-    if (entry.year) entry.year = parseInt(entry.year.toString().split("-")[0]); // first year for series
-    var n = helpers.simplifyName(entry);
-    if (!meta[n]) meta[n] = [];
-    meta[n].push(entry);
-    byImdb[entry.imdb_id] = entry;
-}
-
-// Find in our metadata set
-var pulled = { movie: false, series: false };
-var meta = { }, byImdb = { };
-
-function metadataFind(query, cb) {
-    // It's OK if we don't pass type and we don't fetch names, because we will go to google fallback
-    if (query.type && !pulled[query.type]) stremio.call("names."+query.type, { }, function(err, res) {
-        if (err) console.error(err);
-        if (res) {
-            res.forEach(indexEntry);
-            pulled[query.type] = 1;
-        }
-        match();
-    });
-    else process.nextTick(match);
-
-    function match() {
-        var matches = meta[query.name] || [ ];
-        var m = matches.find(function(match) {
-            if (! match.type === query.type) return false
-
-            if (query.type === 'movie' && query.hasOwnProperty('year')) 
-                return helpers.yearSimilar(query.year, match.year)
-           
-            return true
-        })
-        return cb(null, m && m.imdb_id);
-    };
-}
-
-function imdbFind(task, cb, simpler) {
-
-    function nextTick() {
-        if (!simpler && task.year)
-            imdbFind(task, cb, true)
-        else
-            cb(null, null)
-    }
-
-    function matchSimilar(parsed, callback) {
-
-        var pick
-        var secondBest
-        var firstResult
-
-        var similarityGoal = 0.6
-
-        parsed.some(elm => {
-            if (!task.type || (task.type == 'movie' && elm.q == 'feature') || (task.type == 'series' && (elm.q == 'TV series' || elm.q == 'TV mini-series'))) {
-
-                if (helpers.yearSimilar(task.year, elm.y)) {
-
-                    // try to match by levenshtein distance
-                    var similarity = helpers.nameSimilar(task.name, elm.l)
-
-                    if (similarity > similarityGoal) {
-                        if (!pick || (pick && similarity > pick.similarity)) {
-                            pick = elm
-                            pick.similarity = similarity
-                        }
-                    }
-
-                    // fallback to non-levenshtein distance logic
-                    if (!secondBest && helpers.nameAlmostSimilar(task.name, elm.l))
-                        secondBest = elm
-
-                    // if nothing else is found, pick first result
-                    // (because what we're searching for might be the alternative name of the first result)
-                    // this is ignored if strict mode enabled
-                    if (!firstResult && !task.strict)
-                        firstResult = elm
-                }
-
-            }
-        })
-
-        callback(pick || secondBest || firstResult || null)
-    }
-
-    // we first search imdb for name + year (if we have a year set)
-    // if it fails we search by name only (simpler)
-    var searchTerm = !simpler && task.year ? task.name + ' ' + task.year : task.name
-    
-    var imdbSearchUrl = 'http://sg.media-imdb.com/suggests/' + searchTerm.charAt(0) + '/' + encodeURIComponent(searchTerm)  + '.json'
-
-    needle.get(imdbSearchUrl, function(err, res) {
-        if (!err && res.statusCode == 200 && res.body) {
-
-            res.body = String.fromCharCode.apply(null, res.body)
-
-            var imdbParse = JSON.parse(res.body.match(/{.*}/g))
-
-            if (imdbParse.d) {
-
-                var selected
-
-                matchSimilar(imdbParse.d, function(selected) {
-                    if (selected)
-                        cb(null, selected.id, { match: imdbSearchUrl })
-                    else nextTick()
-                })
-
-            } else nextTick()
-        } else nextTick()
-    })
-}
+var CACHE_TTL = 12*60*60*1000; // if we don't find an item, how long does it stay in the cache as "not found" before we retry it 
 
 // In-memory cache for matched items, to avoid flooding Google (or whatever search api we use)
 var cache = { };
@@ -145,8 +14,6 @@ var cache = { };
 // Outside API
 function nameToImdb(args, cb) {
     args = typeof(args)=="string" ? { name: args } : args;
-
-    if (!args.hasOwnProperty('noGoogle')) args.noGoogle = true
 
     args.name = helpers.simplifyName(args);
     
@@ -183,4 +50,3 @@ var queue = new namedQueue(function(task, cb) {
 
 
 module.exports = nameToImdb;
-module.exports.byImdb = byImdb;
