@@ -1,48 +1,98 @@
-var needle = require("needle")
 
+var needle = require("needle")
 var helpers = require("../helpers")
 
-function imdbFind(task, cb, simpler) {
+var similarityGoal = 0.6 // similarity target for levenshtein distance
 
-    function nextTick() {
-        if (!simpler && task.year)
-            imdbFind(task, cb, true)
-        else
-            cb(null, null)
+function getImdbResults(searchTerm, cb) {
+
+    var url = 'http://sg.media-imdb.com/suggests/' + searchTerm.charAt(0) + '/' + encodeURIComponent(searchTerm)  + '.json'
+
+    needle.get(url, function(err, res) {
+
+        if (!err && res.statusCode == 200 && res.body) {
+
+            res.body = String.fromCharCode.apply(null, res.body)
+
+            var imdbParse = JSON.parse(res.body.match(/{.*}/g))
+
+            var results = imdbParse.d
+
+            cb(results && results.length ? results : false, url)
+
+        } else
+            cb(false)
+    })
+}
+
+function imdbFind(task, cb, loose) {
+
+    var fail = function() { cb(null, null) }
+
+    // we first search imdb with a name + year query (if we have a year set)
+    // if it fails we search by name query only (looser)
+    // we shouldn't retry if there's no year, because it searched
+    // without a year in the query the first time too
+    var shouldRetry = !loose && task.year
+
+    var retry = function() {
+        return shouldRetry ? imdbFind(task, cb, true) : fail()
     }
 
-    function matchSimilar(parsed, callback) {
+    var searchTerm = shouldRetry ? task.name + ' ' + task.year : task.name
 
-        var pick
-        var secondBest
-        var firstResult
+    getImdbResults(searchTerm, function(results, url) {
+        if (results)
+            matchSimilar(results, function(result) {
+                if (result)
+                    cb(null, result.id, { match: url })
+                else
+                    retry()
+            })
+        else
+            retry()
+    })
+    
+    var matchSimilar = function(results, callback) {
 
-        var similarityGoal = 0.6
+        var pick, secondBest, firstResult
 
-        parsed.some(function(elm) {
-            if (!task.type || (task.type == 'movie' && elm.q == 'feature') || (task.type == 'series' && (elm.q == 'TV series' || elm.q == 'TV mini-series'))) {
+        results.some(function(result) {
 
-                if (helpers.yearSimilar(task.year, elm.y)) {
+            var res = {
+                id: result.id,
+                name: result.l,
+                year: result.y,
+                type: result.q
+            }
+
+            var movieMatch = task.type == 'movie' && res.type == 'feature'
+
+            var seriesMatch = task.type == 'series' && ['TV series', 'TV mini-series'].indexOf(res.type) > -1
+
+            if (!task.type || movieMatch || seriesMatch) {
+
+                if (helpers.yearSimilar(task.year, res.year)) {
 
                     // try to match by levenshtein distance
-                    var similarity = helpers.nameSimilar(task.name, elm.l)
+                    var similarity = helpers.nameSimilar(task.name, res.name)
 
                     if (similarity > similarityGoal) {
                         if (!pick || (pick && similarity > pick.similarity)) {
-                            pick = elm
+                            pick = res
                             pick.similarity = similarity
                         }
                     }
 
                     // fallback to non-levenshtein distance logic
-                    if (!secondBest && helpers.nameAlmostSimilar(task.name, elm.l))
-                        secondBest = elm
+                    if (!secondBest && helpers.nameAlmostSimilar(task.name, res.name))
+                        secondBest = res
 
                     // if nothing else is found, pick first result
                     // (because what we're searching for might be the alternative name of the first result)
                     // this is ignored if strict mode enabled
                     if (!firstResult && !task.strict)
-                        firstResult = elm
+                        firstResult = res
                 }
 
             }
@@ -51,32 +101,7 @@ function imdbFind(task, cb, simpler) {
         callback(pick || secondBest || firstResult || null)
     }
 
-    // we first search imdb for name + year (if we have a year set)
-    // if it fails we search by name only (simpler)
-    var searchTerm = !simpler && task.year ? task.name + ' ' + task.year : task.name
-    
-    var imdbSearchUrl = 'http://sg.media-imdb.com/suggests/' + searchTerm.charAt(0) + '/' + encodeURIComponent(searchTerm)  + '.json'
-
-    needle.get(imdbSearchUrl, function(err, res) {
-        if (!err && res.statusCode == 200 && res.body) {
-
-            res.body = String.fromCharCode.apply(null, res.body)
-
-            var imdbParse = JSON.parse(res.body.match(/{.*}/g))
-
-            if (imdbParse.d) {
-
-                var selected
-
-                matchSimilar(imdbParse.d, function(selected) {
-                    if (selected)
-                        cb(null, selected.id, { match: imdbSearchUrl })
-                    else nextTick()
-                })
-
-            } else nextTick()
-        } else nextTick()
-    })
 }
 
  module.exports = imdbFind
+ 
