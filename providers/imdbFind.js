@@ -2,7 +2,6 @@
 var needle = require("needle")
 var helpers = require("../helpers")
 
-var similarityGoal = 0.6 // similarity target for levenshtein distance
 
 function getImdbResults(searchTerm, cb) {
 
@@ -30,7 +29,7 @@ function imdbFind(task, cb, loose) {
     // we first search imdb with a name + year query (if we have a year set)
     // if it fails we search by name query only (looser)
     // we shouldn't retry if there's no year, because it searched
-    // without a year in the query the first time too
+    // without a year in the first attempt already
     var shouldRetry = !loose && task.year
 
     var retry = function() {
@@ -53,10 +52,14 @@ function imdbFind(task, cb, loose) {
     
     var matchSimilar = function(results, callback) {
 
+        // similarity target for levenshtein distance
+        var similarityGoal = 0.6
+
         var pick, secondBest, firstResult
 
         results.some(function(result) {
 
+            // make result readable, the imdb result keys make no sense otherwise
             var res = {
                 id: result.id,
                 name: result.l,
@@ -82,7 +85,8 @@ function imdbFind(task, cb, loose) {
                         }
                     }
 
-                    // fallback to non-levenshtein distance logic
+                    // fallback to non-levenshtein distance logic:
+                    // if the result name includes the task name or vice-versa (at end or start)
                     if (!secondBest && helpers.nameAlmostSimilar(task.name, res.name))
                         secondBest = res
 
@@ -95,6 +99,18 @@ function imdbFind(task, cb, loose) {
 
             }
         })
+
+        // if pick doesn't include the task name (because it's only the most similar textually)
+        // then pick the second best result (because it does)
+        // example scenario:
+        // task.name = 'Ghost Hound'
+        // pick.name = 'Ghost Hunt'
+        // secondBest.name = 'Shinreigari: Ghost Hound'
+
+        if (secondBest && pick) {
+            if (!helpers.nameAlmostSimilar(task.name, pick.name))
+                pick = secondBest
+        }
 
         callback(pick || secondBest || firstResult || null)
     }
