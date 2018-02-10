@@ -5,9 +5,7 @@ var helpers = require("../helpers")
 function imdbFind(task, cb, simpler) {
 
     function nextTick() {
-        if (
-            !simpler && task.year)
-
+        if (!simpler && task.year)
             imdbFind(task, cb, true)
         else
             cb(null, null)
@@ -21,7 +19,7 @@ function imdbFind(task, cb, simpler) {
 
         var similarityGoal = 0.6
 
-        parsed.some(elm => {
+        parsed.some(function(elm) {
             if (!task.type || (task.type == 'movie' && elm.q == 'feature') || (task.type == 'series' && (elm.q == 'TV series' || elm.q == 'TV mini-series'))) {
 
                 if (helpers.yearSimilar(task.year, elm.y)) {
