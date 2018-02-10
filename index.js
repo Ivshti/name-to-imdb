@@ -68,7 +68,7 @@ function imdbFind(task, cb, simpler) {
         if (!simpler && task.year)
             imdbFind(task, cb, true)
         else
-            webFind(task, cb)
+            cb(null, null)
     }
 
     function matchSimilar(parsed, callback) {
@@ -137,34 +137,6 @@ function imdbFind(task, cb, simpler) {
             } else nextTick()
         } else nextTick()
     })
-}
-
-// Find in the web / Google
-function webFind(task, cb) {
-
-    if (task.strict || task.noGoogle) return cb(null, null, null) // strict and noGoogle don't search google
-
-    var opts = {
-        follow_max: 3,
-        open_timeout: 15*1000,
-        headers: { "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.86 Safari/537.36" }
-    };
-
-    if (task.hintUrl) return needle.get(task.hintUrl, opts, function(err, resp, body) {
-        if (err) return cb(err);
-        var match = body && body.match(new RegExp("\/title\/(tt[0-9]+)")); // Match IMDB Id from the whole body
-        var id = match && match[1];
-        cb(null, id, { match: task.hintUrl });
-    });
-
-    // WARNING: www. vs not?  is there difference?
-    // no quotes - they can actually make the results dumber
-    var query = "site:imdb.com "
-        +task.name.toLowerCase()+(task.year ? " "+task.year : "")
-        +((task.type=="series") ? " \"tv series\"" : ""); // Compute that now so that we can use the mapping
-
-    // Google search api is deprecated, use this
-    webFind({ hintUrl: GOOGLE_SEARCH+encodeURIComponent(query) }, cb);
 }
 
 // In-memory cache for matched items, to avoid flooding Google (or whatever search api we use)
