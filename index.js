@@ -14,6 +14,7 @@ var CACHE_TTL = 12*60*60*1000; // if we don't find an item, how long does it sta
 
 // In-memory cache for matched items, to avoid flooding Google (or whatever search api we use)
 var cache = { };
+var cacheLastSet = { };
 
 // Named queue, means that we're not working on one name more than once at a tim
 // and a total of 3 names at once
@@ -40,8 +41,9 @@ function nameToImdb(args, cb) {
 
     var key = new Buffer(args.hintUrl || _.values(q).join(':')).toString('ascii') // convert to ASCII since EventEmitter bugs with UTF8
     
-    if (cache.hasOwnProperty(key))
+    if (cache.hasOwnProperty(key) && Date.now()-cacheLastSet[key] < CACHE_TTL) {
         return cb(null, cache[key][0], { match: cache[key][1].match, isCached: true })
+    }
 
     queue.push({ 
         id: key,
@@ -53,7 +55,7 @@ function nameToImdb(args, cb) {
         
         if (imdb_id) {
             cache[key] = [imdb_id, match]
-            setTimeout(function() { delete cache[key] }, CACHE_TTL)
+            cacheLastSet[key] = Date.now()
         }
 
         cb(null, imdb_id, match)
