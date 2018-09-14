@@ -39,7 +39,9 @@ function metadataFind(query, cb) {
     } else process.nextTick(match);
 
     function match() {
-        var matches = meta[helpers.simplifyName(query)] || [ ];
+        var name = helpers.simplifyName(query)
+        if (!name) return cb(null, null)
+        var matches = meta[name] || [ ];
         var m = matches.find(function(match) {
             if (!match.type === query.type) return false
 

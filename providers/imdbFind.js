@@ -23,7 +23,6 @@ function getImdbResults(searchTerm, cb) {
 }
 
 function imdbFind(task, cb, loose) {
-
     var fail = function() { cb(null, null) }
 
     // we first search imdb with a name + year query (if we have a year set)
