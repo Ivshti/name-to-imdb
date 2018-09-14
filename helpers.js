@@ -87,7 +87,7 @@ helpers.simplifyName = function(args) {
     if (!args || !args.name)
       return null
 
-    args.name = args.name.toLowerCase()
+    var name = args.name.toLowerCase()
         .trim()
         .replace(/\([^\(]+\)$/, '') // remove brackets at end
         .replace(/&/g, "and") // unify & vs "and"
@@ -96,10 +96,10 @@ helpers.simplifyName = function(args) {
         .filter(function(r){ return r })
         .join(' ') // remove any aditional whitespaces
 
-    if (args.year && args.name.endsWith(' ' + args.year))
-        args.name = args.name.replace(new RegExp(' ' + args.year + '$', 'i'), '')
+    if (args.year && name.endsWith(' ' + args.year))
+        name = name.replace(new RegExp(' ' + args.year + '$', 'i'), '')
 
-    return args.name
+    return name
 
 }
 
