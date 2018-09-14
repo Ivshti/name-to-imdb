@@ -23,13 +23,11 @@ var queue = new namedQueue(worker, 3)
 function nameToImdb(args, cb) {
     args = typeof(args)=='string' ? { name: args } : args
 
-    args.name = helpers.simplifyName(args)
-    
     var q = { name: args.name }
     if (args.year) q.year = args.year
     if (args.type) q.type = args.type
 
-    if (! q.name)
+    if (!q.name)
         return cb(new Error('empty name'))
 
     if (q.year && typeof(q.year)=='string') q.year = parseInt(q.year.split('-')[0])

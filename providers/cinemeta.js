@@ -39,9 +39,9 @@ function metadataFind(query, cb) {
     } else process.nextTick(match);
 
     function match() {
-        var matches = meta[query.name] || [ ];
+        var matches = meta[helpers.simplifyName(query)] || [ ];
         var m = matches.find(function(match) {
-            if (! match.type === query.type) return false
+            if (!match.type === query.type) return false
 
             if (query.type === 'movie' && query.hasOwnProperty('year')) 
                 return helpers.yearSimilar(query.year, match.year)
