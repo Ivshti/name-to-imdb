@@ -43,7 +43,7 @@ function metadataFind(query, cb) {
         if (!name) return cb(null, null)
         var matches = meta[name] || [ ];
         var m = matches.find(function(match) {
-            if (!match.type === query.type) return false
+            if (!(match.type === query.type)) return false
 
             if (query.type === 'movie' && query.hasOwnProperty('year')) 
                 return helpers.yearSimilar(query.year, match.year)
