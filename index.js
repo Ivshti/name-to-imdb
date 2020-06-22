@@ -48,16 +48,16 @@ function nameToImdb(args, cb) {
         id: key,
         q: q,
         providers: args.providers || defaultProviders,
-    }, function(err, imdb_id, match, full) {
+    }, function(err, res, match) {
         if (err)
             return cb(err)
         
-        if (imdb_id) {
-            cache[key] = [imdb_id, match]
+        if (res.id) {
+            cache[key] = [res.id, match]
             cacheLastSet[key] = Date.now()
         }
 
-        cb(null, imdb_id, match, full)
+        cb(null, res, match)
     })
 };
 
@@ -76,12 +76,12 @@ function worker(task, cb) {
         if (!provider)
             return cb(new Error('unknown provider: '+n))
 
-        provider(task.q, function(err, id, match, res) {
+        provider(task.q, function(err, res) {
             if (err)
                 return cb(err)
 
-            if (id)
-                return cb(null, id, { match: n }, res)
+            if (res)
+                return cb(null, res, { match: n })
             else
                 nextProv()
         })
