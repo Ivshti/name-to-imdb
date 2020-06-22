@@ -15,7 +15,7 @@ var CACHE_TTL = 12*60*60*1000; // if we don't find an item, how long does it sta
 var cache = { };
 var cacheLastSet = { };
 
-// Named queue, means that we're not working on one name more than once at a tim
+// Named queue, means that we're not working on one name more than once at a time
 // and a total of 3 names at once
 var queue = new namedQueue(worker, 3)
 
@@ -48,7 +48,7 @@ function nameToImdb(args, cb) {
         id: key,
         q: q,
         providers: args.providers || defaultProviders,
-    }, function(err, imdb_id, match) {
+    }, function(err, imdb_id, match, full) {
         if (err)
             return cb(err)
         
@@ -57,7 +57,7 @@ function nameToImdb(args, cb) {
             cacheLastSet[key] = Date.now()
         }
 
-        cb(null, imdb_id, match)
+        cb(null, imdb_id, match, full)
     })
 };
 
@@ -76,12 +76,12 @@ function worker(task, cb) {
         if (!provider)
             return cb(new Error('unknown provider: '+n))
 
-        provider(task.q, function(err, id) {
+        provider(task.q, function(err, id, match, res) {
             if (err)
                 return cb(err)
 
             if (id)
-                return cb(null, id, { match: n })
+                return cb(null, id, { match: n }, res)
             else
                 nextProv()
         })
