@@ -14,9 +14,10 @@ npm install name-to-imdb
 ## Example
 ```javascript
 var nameToImdb = require("name-to-imdb");
-nameToImdb({ name: "south park" }, function(err, res, inf) { 
+nameToImdb({ name: "south park" }, function(err, res, inf, full) { 
 	console.log(res); // prints "tt0121955"
 	console.log(inf); // inf contains info on where we matched that name - e.g. metadata, or on imdb
+	console.log(full) // an object with all the available metadata
 })
 ```
 
