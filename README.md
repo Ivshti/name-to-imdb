@@ -11,10 +11,11 @@ npm install name-to-imdb
 
 **args.providers** - an array of providers to search in; possible options are ``metadata`` and ``imdbFind``; default is ``["metadata", "imdbFind"]``
 
-## Example
+## Examples
+### imdbFind provider
 ```js
 var nameToImdb = require("name-to-imdb");
-nameToImdb({ name: "south park" }, function(err, res, inf) { 
+nameToImdb('south park', function(err, res, inf) { 
 	console.log(res.id); // prints "tt0121955"
 	console.log(res.name); // prints "South Park"
 	console.log(inf); // inf contains info on where we matched that name - e.g. metadata, or on imdb
@@ -38,3 +39,29 @@ res: {
     similarity: 1
   }
 ```
+
+### metadata provider
+
+```js
+var nameToImdb = require("name-to-imdb");
+nameToImdb({ name: "south park", type: 'series', providers: ['metadata'] }, function (err, res, inf) {
+  console.log(res.id); // prints "tt0121955"
+  console.log(res.name); // prints "South Park"
+  console.log(inf); // inf contains info on where we matched that name - e.g. metadata, or on imdb
+})
+```
+
+```js
+res: {
+  id: 'tt0121955',
+  name: 'South Park',
+  year: 1997,
+  type: 'series',
+  yearRange: undefined, // imdbFind only
+  image: undefined, // imdbFind only
+  starring: undefined, // imdbFind only
+  similarity: undefined // imdbFind only
+}
+```
+
+> Note: while using "metadata" provider, you must specify the media type and the name must be in english
