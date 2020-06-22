@@ -52,7 +52,7 @@ function nameToImdb(args, cb) {
         if (err)
             return cb(err)
         
-        if (res.id) {
+        if (res && res.id) {
             cache[key] = [res.id, match]
             cacheLastSet[key] = Date.now()
         }

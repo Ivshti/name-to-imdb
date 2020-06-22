@@ -50,7 +50,18 @@ function metadataFind(query, cb) {
            
             return true
         })
-        return cb(null, m && m.imdb_id);
+        // Uniform the result to imdbFind provider
+        var res = m ? {
+            id: m.imdb_id,
+            name: m.name,
+            year: m.year,
+            type: m.type,
+            yearRange: undefined,
+            image: undefined,
+            starring: undefined,
+            similarity: undefined,
+        } : false;
+        return cb(null, res);
     };
 }
 
