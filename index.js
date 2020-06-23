@@ -57,7 +57,7 @@ function nameToImdb(args, cb) {
             cacheLastSet[key] = Date.now()
         }
 
-        cb(null, res, match)
+        cb(null, res.id, { ...match, meta: res })
     })
 };
 
