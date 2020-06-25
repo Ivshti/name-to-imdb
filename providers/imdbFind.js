@@ -40,7 +40,7 @@ function imdbFind(task, cb, loose) {
         if (results)
             matchSimilar(results, function(result) {
                 if (result)
-                    cb(null, result.id, { match: url })
+                    cb(null, result, { match: url })
                 else
                     retry()
             })
@@ -62,7 +62,14 @@ function imdbFind(task, cb, loose) {
                 id: result.id,
                 name: result.l,
                 year: result.y,
-                type: result.q
+                type: result.q,
+                yearRange: result.yr,
+                image: result.i ? {
+                    src: result.i[0],
+                    width: result.i[1],
+                    height: result.i[2]
+                } : undefined,
+                starring: result.s,
             }
 
             var movieMatch = task.type == 'movie' && res.type == 'feature'
