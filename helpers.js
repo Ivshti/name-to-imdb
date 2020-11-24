@@ -103,4 +103,13 @@ helpers.simplifyName = function(args) {
 
 }
 
+helpers.parseSearchTerm = function(searchTerm) {
+  if (!searchTerm || typeof searchTerm !== 'string') return null;
+  
+  var diacritics = require('diacritics').remove;
+  
+  var res = searchTerm.replace(/[^\u0000-\u036F][ \t]*/gm, '');
+  return diacritics(res);
+}
+
 module.exports = helpers

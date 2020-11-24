@@ -1,5 +1,5 @@
-var namedQueue = require('named-queue');
-var helpers = require('./helpers')
+const namedQueue = require('named-queue');
+const helpers = require('./helpers');
 
 var providers = {
     metadata: require('./providers/cinemeta'),
@@ -23,7 +23,7 @@ var queue = new namedQueue(worker, 3)
 function nameToImdb(args, cb) {
     args = typeof(args)=='string' ? { name: args } : args
 
-    var q = { name: args.name }
+    var q = { name: helpers.parseSearchTerm(args.name) }
     if (args.year) q.year = args.year
     if (args.type) q.type = args.type
 
@@ -37,8 +37,7 @@ function nameToImdb(args, cb) {
 
     if (q.type && !(q.type=='movie' || q.type=='series')) 
         return cb(null, null) // no match for other types
-
-    var key = new Buffer(args.hintUrl || Object.values(q).join(':')).toString('ascii') // convert to ASCII since EventEmitter bugs with UTF8
+    var key = new Buffer.from(args.hintUrl || Object.values(q).join(':')).toString('ascii') // convert to ASCII since EventEmitter bugs with UTF8
     
     if (cache.hasOwnProperty(key) && Date.now()-cacheLastSet[key] < CACHE_TTL) {
         return cb(null, cache[key][0], { match: cache[key][1].match, isCached: true })
