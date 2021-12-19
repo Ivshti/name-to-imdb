@@ -71,7 +71,7 @@ function imdbFind(task, cb, loose) {
                 starring: result.s,
             }
 
-            var movieMatch = task.type == 'movie' && res.type == 'feature'
+            var movieMatch = task.type == 'movie' && ['feature', 'TV special'].indexOf(res.type) > -1
 
             var seriesMatch = task.type == 'series' && ['TV series', 'TV mini-series'].indexOf(res.type) > -1
 
