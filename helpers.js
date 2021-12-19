@@ -57,7 +57,7 @@ helpers.levenshteinDistance = function(s1, s2) {
 }
 
 helpers.sanitizeName = function(name) {
-    return name.replace(/[^a-zA-Z0-9 ]/g, '').toLowerCase().replace('the ','')
+    return name.replace(/[^a-zA-Z0-9 ]/g, '').toLowerCase().replace('the ','').replace(/\s+/g, ' ').trim()
 }
 
 helpers.nameSimilar = function(parsedName, altName) {
