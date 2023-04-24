@@ -23,11 +23,13 @@ var queue = new namedQueue(worker, 3)
 function nameToImdb(args, cb) {
 
     if (!cb)
-        return new Promise((resolve, reject) => nameToImdb(args, function (error, result) {
-            if (error)
-                return reject(error)
-            resolve(result)
-        }))
+        return new Promise(function (resolve, reject) {
+            nameToImdb(args, function (error, result) {
+                if (error)
+                    return reject(error)
+                resolve(result)
+            })
+        })
 
     args = typeof (args) == 'string' ? { name: args } : args
 
