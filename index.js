@@ -134,7 +134,7 @@ function nameToImdbSync(args) {
           cacheLastSet[key] = Date.now();
         }
   
-        resolve([(res || {}).id, { ...match, meta: res }]);
+        resolve({res:(res || {}).id, inf:{ ...match, meta: res }});
       });
     });
   };
