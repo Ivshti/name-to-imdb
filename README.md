@@ -11,6 +11,8 @@ npm install name-to-imdb
 
 **args.providers** - an array of providers to search in; possible options are ``metadata`` and ``imdbFind``; default is ``["metadata", "imdbFind"]``
 
+**callback** - A function that is called with either an error or the IMDB ID and match info. If no callback is provided, a Promise is returned instead.
+
 ## Examples
 ### imdbFind provider
 ```js
@@ -39,6 +41,34 @@ nameToImdb("south park", function(err, res, inf) {
   starring: 'Trey Parker, Matt Stone',
   similarity: 1
 }
+```
+
+```js
+var nameToImdb = require("name-to-imdb");
+nameToImdb("south park")
+  .then(function ({res,inf}) {
+    console.log(res); // "tt0121955"
+    console.log(inf); // {match: 'metadata', isCached: false, meta: {...}}
+  })
+  .catch(function (error) {
+    console.error(error);
+  });
+```
+
+```js
+var nameToImdb = require("name-to-imdb");
+
+async function search() {
+  try {
+    var result = await nameToImdb({ name: "The Matrix", year: 1999 });
+    console.log(result.res); // "tt0133093"
+    console.log(result.inf); // {match: 'metadata', isCached: false, meta: {...}}
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+search();
 ```
 
 ### metadata provider
