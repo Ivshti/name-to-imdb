@@ -24,10 +24,10 @@ function nameToImdb(args, cb) {
 
     if (!cb)
         return new Promise(function (resolve, reject) {
-            nameToImdb(args, function (error, result) {
+            nameToImdb(args, function (error, res, inf) {
                 if (error)
                     return reject(error)
-                resolve(result)
+                resolve({ res, inf })
             })
         })
 
