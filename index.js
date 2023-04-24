@@ -87,4 +87,58 @@ function worker(task, cb) {
     }
 }
 
+function nameToImdbSync(args) {
+    return new Promise((resolve, reject) => {
+      args = typeof(args) === 'string' ? { name: args } : args;
+  
+      var q = { name: helpers.parseSearchTerm(args.name) };
+      if (args.year) q.year = args.year;
+      if (args.type) q.type = args.type;
+  
+      if (!q.name) {
+        reject(new Error('empty name'));
+        return;
+      }
+  
+      if (q.year && typeof(q.year) === 'string') q.year = parseInt(q.year.split('-')[0]);
+  
+      if (q.year && isNaN(q.year)) {
+        reject(new Error('invalid year'));
+        return;
+      }
+  
+      if (q.type && !(q.type == 'movie' || q.type == 'series')) {
+        resolve(null); // no match for other types
+        return;
+      }
+  
+      var key = new Buffer.from(args.hintUrl || Object.values(q).join(':')).toString('ascii'); // convert to ASCII since EventEmitter bugs with UTF8
+  
+      if (cache.hasOwnProperty(key) && Date.now() - cacheLastSet[key] < CACHE_TTL) {
+        resolve([cache[key][0], { match: cache[key][1].match, isCached: true }]);
+        return;
+      }
+  
+      queue.push({
+        id: key,
+        q: q,
+        providers: args.providers || defaultProviders,
+      }, function(err, res, match) {
+        if (err) {
+          reject(err);
+          return;
+        }
+  
+        if (res && res.id) {
+          cache[key] = [res.id, match];
+          cacheLastSet[key] = Date.now();
+        }
+  
+        resolve([(res || {}).id, { ...match, meta: res }]);
+      });
+    });
+  };
+
+
 module.exports = nameToImdb;
+module.exports.nameToImdbSync = nameToImdbSync;
