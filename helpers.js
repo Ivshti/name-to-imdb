@@ -73,8 +73,8 @@ helpers.nameSimilar = function(parsedName, altName) {
 helpers.nameAlmostSimilar = function(parsedName, altName) {
     if (!parsedName || !altName) return false
     else {
-        parsedName = helpers.sanitizeName(parsedName)
-        altName = helpers.sanitizeName(altName)
+        parsedName = helpers.sanitizeName(helpers.simplifyName({ name: parsedName }))
+        altName = helpers.sanitizeName(helpers.simplifyName({ name: altName }))
         if (parsedName.startsWith(altName) || parsedName.endsWith(altName) || altName.startsWith(parsedName) || altName.endsWith(parsedName))
             return true
     }
